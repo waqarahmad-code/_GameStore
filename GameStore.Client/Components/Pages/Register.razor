@@ -1,0 +1,134 @@
+﻿@page "/register"
+
+@using GameStore.Client.Models
+@using GameStore.Client.Services
+
+@inject AuthClient AuthClient
+@inject NavigationManager NavigationManager
+
+<PageTitle>Register</PageTitle>
+
+<div class="container mt-5">
+
+    <div class="row justify-content-center">
+
+        <div class="col-md-6">
+
+            <div class="card shadow">
+
+                <div class="card-body">
+
+                    <h3 class="text-center mb-4">
+                        Create Account
+                    </h3>
+
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="alert alert-danger">
+                            @errorMessage
+                        </div>
+                    }
+
+                    <EditForm Model="@model"
+                              OnValidSubmit="@RegisterAsync">
+
+                        <DataAnnotationsValidator />
+
+                        <div class="mb-3">
+
+                            <label class="form-label">
+                                First Name
+                            </label>
+
+                            <InputText class="form-control"
+                                       @bind-Value="model.FirstName" />
+
+                        </div>
+
+                        <div class="mb-3">
+
+                            <label class="form-label">
+                                Last Name
+                            </label>
+
+                            <InputText class="form-control"
+                                       @bind-Value="model.LastName" />
+
+                        </div>
+
+                        <div class="mb-3">
+
+                            <label class="form-label">
+                                Email
+                            </label>
+
+                            <InputText class="form-control"
+                                       @bind-Value="model.Email" />
+
+                        </div>
+
+                        <div class="mb-3">
+
+                            <label class="form-label">
+                                Password
+                            </label>
+
+                            <InputText type="password"
+                                       class="form-control"
+                                       @bind-Value="model.Password" />
+
+                        </div>
+
+                        <button class="btn btn-success w-100"
+                                type="submit">
+
+                            Register
+
+                        </button>
+
+                    </EditForm>
+
+                    <div class="text-center mt-3">
+
+                        Already have an account?
+
+                        <a href="/login">
+                            Login
+                        </a>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+@code {
+
+    private RegisterRequest model = new();
+
+    private string? errorMessage;
+
+    private async Task RegisterAsync()
+    {
+        errorMessage = null;
+
+        var success =
+            await AuthClient.RegisterAsync(model);
+
+        if (!success)
+        {
+            errorMessage =
+                "Registration failed. Please check your information.";
+
+            return;
+        }
+
+        NavigationManager.NavigateTo("/login");
+    }
+}

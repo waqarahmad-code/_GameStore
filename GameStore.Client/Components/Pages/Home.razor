@@ -1,0 +1,241 @@
+﻿@page "/"
+@using Models
+@inject NavigationManager NavigationManager
+@inject GameClient GameClient
+
+<PageTitle>Game Catalog</PageTitle>
+
+<h1>Game Catalog</h1>
+
+<div class="row mb-4">
+    <div class="col-sm-6">
+        <button type="button"
+                class="btn btn-primary"
+                @onclick="CreateGame">
+            New Game
+        </button>
+    </div>
+</div>
+
+<div class="mb-3">
+    <input type="text"
+           class="form-control"
+           placeholder="Search games..."
+           @bind="searchText"
+           @bind:event="oninput"
+           @bind:after="SearchGames" />
+</div>
+
+@if (games is null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <DeleteGame Game="@currentGame"
+                OnClose="@OnDeleteModalClose">
+    </DeleteGame>
+
+    <table class="table table-striped table-bordered table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>Id</th>
+                <th>Name</th>
+                <th>Genre</th>
+                <th class="text-end">Price</th>
+                <th>Release Date</th>
+                <th></th>
+            </tr>
+        </thead>
+
+        <tbody>
+            @if (games.Count == 0)
+            {
+                <tr>
+                    <td colspan="6" class="text-center">
+                        No games found.
+                    </td>
+                </tr>
+            }
+            else
+            {
+                @foreach (var game in games)
+                {
+                    <tr>
+                        <td>@game.Id</td>
+                        <td>@game.Name</td>
+                        <td>@game.Genre</td>
+                        <td class="text-end">@game.Price.ToString("C2")</td>
+                        <td>@game.ReleaseDate.ToString("MM/dd/yyyy")</td>
+                        <td>
+                            <button class="btn btn-primary"
+                                    @onclick="(() => EditGame(game.Id))">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+
+                            <button class="btn btn-danger"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#deleteModal"
+                                    @onclick="(() => currentGame = game)">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+
+    @if (totalPages > 0)
+    {
+        <div class="d-flex justify-content-between align-items-center">
+
+            <span>
+                Showing
+                @(((pageNumber - 1) * pageSize) + 1)
+                -
+                @Math.Min(pageNumber * pageSize, totalItems)
+                of @totalItems
+            </span>
+
+            <nav>
+                <ul class="pagination mb-0">
+
+                    <li class="page-item @(pageNumber == 1 ? "disabled" : "")">
+                        <button type="button"
+                                class="page-link"
+                                @onclick="PreviousPage">
+                            Previous
+                        </button>
+                    </li>
+
+                    @for (int i = 1; i <= totalPages; i++)
+                    {
+                        var pageNo = i;
+
+                        <li class="page-item @(pageNumber == pageNo ? "active" : "")">
+                            <button type="button"
+                                    class="page-link"
+                                    @onclick="() => GoToPage(pageNo)">
+                                @pageNo
+                            </button>
+                        </li>
+                    }
+
+                    <li class="page-item @(pageNumber == totalPages ? "disabled" : "")">
+                        <button type="button"
+                                class="page-link"
+                                @onclick="NextPage">
+                            Next
+                        </button>
+                    </li>
+
+                </ul>
+            </nav>
+
+        </div>
+    }
+}
+
+@code {
+    private List<Game> games = new();
+
+    private Game? currentGame;
+
+
+    private string searchText = string.Empty;
+
+    private int pageNumber = 1;
+    private int pageSize = 10;
+
+    private int totalItems;
+    private int totalPages;
+
+
+    private async Task LoadGames()
+    {
+        try
+        {
+            var result = await GameClient.GetGamesAsync(
+                searchText,
+                pageNumber,
+                pageSize);
+
+            games = result.Items;
+
+            totalItems = result.TotalItems;
+            totalPages = result.TotalPages;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("ERROR:");
+            Console.WriteLine(ex.ToString());
+        }
+    }
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadGames();
+    }
+
+    private void CreateGame()
+    {
+        NavigationManager.NavigateTo("/game");
+    }
+
+    private void EditGame(int id)
+    {
+        NavigationManager.NavigateTo($"/game/{id}");
+    }
+
+    private async Task OnDeleteModalClose(bool accepted)
+    {
+        if (!accepted || currentGame is null)
+            return;
+
+        await GameClient.DeleteGameAsync(currentGame.Id);
+
+        await LoadGames();
+
+        currentGame = null;
+    }
+
+
+    private async Task SearchGames()
+    {
+        pageNumber = 1;
+
+        await LoadGames();
+    }
+
+
+    private async Task GoToPage(int page)
+    {
+        if (page < 1 || page > totalPages)
+            return;
+
+        pageNumber = page;
+
+        await LoadGames();
+    }
+
+    private async Task PreviousPage()
+    {
+        if (pageNumber > 1)
+        {
+            pageNumber--;
+
+            await LoadGames();
+        }
+    }
+
+    private async Task NextPage()
+    {
+        if (pageNumber < totalPages)
+        {
+            pageNumber++;
+
+            await LoadGames();
+        }
+    }
+
+}

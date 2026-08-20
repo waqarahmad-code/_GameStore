@@ -1,0 +1,104 @@
+﻿@page "/game"
+@page "/game/{id:int}"
+@using Models
+@inject NavigationManager NavigationManager
+@inject GameClient GameClient
+
+<PageTitle>@title</PageTitle>
+<h1>Game Catalog</h1>
+<h3>@title</h3>
+
+@if (game is null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <div class="row">
+        <div class="col-sm-4">
+            <EditForm FormName="editform" Model="@game" OnValidSubmit="HandleSubmit">
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+                <div class="mb-3">
+                    <label for="name" class="form-label">Name:</label>
+                    <InputText id="name" @bind-Value="game.Name" class="form-control"></InputText>
+                </div>
+                <div class="mb-3">
+                    <label for="genre" class="form-label">Genre:</label>
+                    <InputSelect id="genre" @bind-Value="game.Genre" class="form-select">
+                        <option value="">Select genre</option>
+                        <option value="Fighting">Fighting</option>
+                        <option value="Kids and Family">Kids and Family</option>
+                        <option value="Racing">Racing</option>
+                        <option value="Roleplaying">Roleplaying</option>
+                        <option value="Sports">Sports</option>
+                    </InputSelect>
+                </div>
+                <div class="mb-3">
+                    <label for="price" class="form-label">Price:</label>
+                    <InputNumber id="price" @bind-Value="game.Price" class="form-control"></InputNumber>
+                </div>
+                <div class="mb-3">
+                    <label for="releaseDate" class="form-label">Release Date:</label>
+                    <InputDate id="releaseDate" @bind-Value="game.ReleaseDate" class="form-control"></InputDate>
+                </div>
+                <button type="submit" class="btn btn-primary">Save</button>
+                <button type="button" class="btn btn-secondary" @onclick="@Cancel">Cancel</button>
+            </EditForm>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public int? Id { get; set; }
+
+    private Game? game;
+
+    private string title = string.Empty;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Id is not null)
+        {
+            var foundGame = await GameClient.GetGameAsync(Id.Value);
+            game = new()
+            {
+                Id = foundGame.Id,
+                Name = foundGame.Name,
+                Genre = foundGame.Genre,
+                Price = foundGame.Price,
+                ReleaseDate = foundGame.ReleaseDate
+            };
+            title = $"Edit {game.Name}";
+        }
+        else
+        {
+            game = new() { Name = string.Empty, Genre = string.Empty, ReleaseDate = DateTime.UtcNow };
+            title = "New game";
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        if (game is null)
+            return;
+
+        if (game.Id == 0)
+        {
+            await GameClient.AddGameAsync(game);
+        }
+        else
+        {
+            await GameClient.UpdateGameAsync(game);
+        }
+
+        NavigationManager.NavigateTo("/");
+    }
+
+
+    private void Cancel()
+    {
+        NavigationManager.NavigateTo("/");
+    }
+}

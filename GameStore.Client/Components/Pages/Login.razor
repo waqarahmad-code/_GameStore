@@ -1,0 +1,113 @@
+﻿@page "/login"
+
+@using GameStore.Client.Models
+@using GameStore.Client.Services
+
+@inject AuthClient AuthClient
+@inject AuthState AuthState
+@inject NavigationManager NavigationManager
+
+<PageTitle>Login</PageTitle>
+
+<div class="container mt-5">
+
+    <div class="row justify-content-center">
+
+        <div class="col-md-5">
+
+            <div class="card shadow">
+
+                <div class="card-body">
+
+                    <h3 class="text-center mb-4">
+                        Login
+                    </h3>
+
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="alert alert-danger">
+                            @errorMessage
+                        </div>
+                    }
+
+                    <EditForm Model="@model"
+                              OnValidSubmit="@LoginAsync">
+
+                        <DataAnnotationsValidator />
+
+                        <div class="mb-3">
+
+                            <label class="form-label">
+                                Email
+                            </label>
+
+                            <InputText class="form-control"
+                                       @bind-Value="model.Email" />
+
+                        </div>
+
+                        <div class="mb-3">
+
+                            <label class="form-label">
+                                Password
+                            </label>
+
+                            <InputText type="password"
+                                       class="form-control"
+                                       @bind-Value="model.Password" />
+
+                        </div>
+
+                        <button class="btn btn-primary w-100"
+                                type="submit">
+
+                            Login
+
+                        </button>
+
+                    </EditForm>
+
+                    <div class="text-center mt-3">
+
+                        Don't have an account?
+
+                        <a href="/register">
+                            Register
+                        </a>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+@code {
+
+    private LoginRequest model = new();
+
+    private string? errorMessage;
+
+    private async Task LoginAsync()
+    {
+        errorMessage = null;
+
+        var result = await AuthClient.LoginAsync(model);
+
+        if (result == null ||
+            string.IsNullOrWhiteSpace(result.Token))
+        {
+            errorMessage = "Invalid email or password.";
+            return;
+        }
+
+        AuthState.Login(result.Token);
+
+        NavigationManager.NavigateTo("/");
+    }
+}
